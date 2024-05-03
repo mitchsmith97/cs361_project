@@ -115,7 +115,7 @@ class LoginPage(tk.Frame):
         password = self.password_entry.get()
 
         if username and password:
-            messagebox.showinfo("Login Successful", "Welcome, admin!")
+            messagebox.showinfo("Login Successful", "Welcome back!")
             #self.destroy()
             self.controller.logged_in = True
             self.controller.show_frame(HomePage)
@@ -171,6 +171,47 @@ class WatchlistPage(tk.Frame):
         logout_button = tk.Button(self, text="Logout", command=lambda: controller.show_frame(WelcomePage))
         logout_button.pack(side="top", anchor="ne", padx=10, pady=10)
 
+        self.home_button = tk.Button(self, text="Home", command=lambda: controller.show_frame(HomePage))
+        self.home_button.pack(side="top", anchor="ne", padx=10, pady=10)
+
+        self.add_button = tk.Button(self, text="Add a movie to your watchlist", command=lambda: controller.show_frame(AddWatchlistPage))
+        self.add_button.pack(side="top", anchor="n", padx=10, pady=10)
+
+class AddWatchlistPage(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        label = tk.Label(self, text="Add to Watchlist")
+        label.pack(pady=10, padx=10)
+
+        logout_button = tk.Button(self, text="Logout", command=lambda: controller.show_frame(WelcomePage))
+        logout_button.pack(side="top", anchor="ne", padx=10, pady=10)
+
+        self.home_button = tk.Button(self, text="Home", command=lambda: controller.show_frame(HomePage))
+        self.home_button.pack(side="top", anchor="ne", padx=10, pady=10)
+
+        label = tk.Label(self, text="Search for a movie by name")
+        label.pack()
+
+        self.search_text = tk.Entry(self)
+        self.search_text.pack()
+
+        search_enter = tk.Button(self, text="Search", command=self.add_helper)
+        search_enter.pack()
+
+        cancel_button = tk.Button(self, text="Return to Watchlist", command=lambda: controller.show_frame(WatchlistPage))
+        cancel_button.pack()
+
+    def add_helper(self):
+        title = self.search_text.get()
+
+        if title == 'Star Wars':
+            messagebox.showinfo("Movie found!")
+            
+        else:
+            messagebox.showerror("No results found, try searching for a different title.")
+
+
+
 class WatchedPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -180,12 +221,18 @@ class WatchedPage(tk.Frame):
         logout_button = tk.Button(self, text="Logout", command=lambda: controller.show_frame(WelcomePage))
         logout_button.pack(side="top", anchor="ne", padx=10, pady=10)
 
+        self.home_button = tk.Button(self, text="Home", command=lambda: controller.show_frame(HomePage))
+        self.home_button.pack(side="top", anchor="ne", padx=10, pady=10)
+
 
 class RecommenderPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         label = tk.Label(self, text="Recommender")
         label.pack(pady=10, padx=10)
+
+        self.home_button = tk.Button(self, text="Home", command=lambda: controller.show_frame(HomePage))
+        self.home_button.pack(side="top", anchor="ne", padx=10, pady=10)
 
 if __name__ == "__main__":
     app = App()
