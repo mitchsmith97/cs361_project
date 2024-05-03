@@ -133,13 +133,13 @@ class AccountCreationPage(tk.Frame):
         button2 = tk.Button(self, text="Choose a password")
         button2.pack()
 
+
 class HomePage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         label = tk.Label(self, text="Home Page")
         label.pack(pady=10, padx=10)
 
-        print(controller.logged_in)
         if controller.logged_in:
             logout_button = tk.Button(self, text="Logout", command=lambda: controller.logout())
             logout_button.pack(side="top", anchor="ne", padx=10, pady=10)
@@ -205,17 +205,17 @@ class AddWatchlistPage(tk.Frame):
         title = self.search_text.get()
 
         if title == 'Star Wars':
-            messagebox.showinfo("Movie found!")
+            messagebox.showinfo("Movie found!", "Movie found and will be added to your watchlist")
             
         else:
-            messagebox.showerror("No results found, try searching for a different title.")
+            messagebox.showerror("No results found", "We did not find any matches, please try searching for a different title.")
 
 
 
 class WatchedPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-        label = tk.Label(self, text="Watched Movies")
+        label = tk.Label(self, text="Previously Watched Movies")
         label.pack(pady=10, padx=10)
 
         logout_button = tk.Button(self, text="Logout", command=lambda: controller.show_frame(WelcomePage))
@@ -223,6 +223,58 @@ class WatchedPage(tk.Frame):
 
         self.home_button = tk.Button(self, text="Home", command=lambda: controller.show_frame(HomePage))
         self.home_button.pack(side="top", anchor="ne", padx=10, pady=10)
+
+        self.add_button = tk.Button(self, text="Add a movie to your previously watched", command=lambda: controller.show_frame(AddToWatchedPage))
+        self.add_button.pack(side="top", anchor="n", padx=10, pady=10)
+
+class AddToWatchedPage(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        label = tk.Label(self, text="Add to Previously Watched")
+        label.pack(pady=10, padx=10)
+
+        logout_button = tk.Button(self, text="Logout", command=lambda: controller.show_frame(WelcomePage))
+        logout_button.pack(side="top", anchor="ne", padx=10, pady=10)
+
+        self.home_button = tk.Button(self, text="Home", command=lambda: controller.show_frame(HomePage))
+        self.home_button.pack(side="top", anchor="ne", padx=10, pady=10)
+
+        label = tk.Label(self, text="Enter Movie Title")
+        label.pack()
+
+        self.movie_title = tk.Entry(self)
+        self.movie_title.pack()
+
+        self.rating = tk.StringVar()
+
+        label = tk.Label(self, text="Select a rating for the movie")
+        label.pack()
+
+        self.rating_dropdown = tk.OptionMenu(self, self.rating, "1", "2", "3", "4", "5")
+        self.rating_dropdown.pack()
+
+        label = tk.Label(self, text="Write a review for the movie (Optional)")
+        label.pack()
+
+        self.movie_review = tk.Entry(self)
+        self.movie_review.pack()
+
+        review_enter = tk.Button(self, text="Save to previously watched", command=self.add_helper)
+        review_enter.pack()
+
+        cancel_button = tk.Button(self, text="Return to Previously Watched List", command=lambda: controller.show_frame(WatchedPage))
+        cancel_button.pack()
+
+    def add_helper(self):
+        print(self.movie_title.get())
+        print(self.rating.get())
+        print(self.movie_review.get())
+
+        if self.movie_title and self.rating.get() in [str(i) for i in range(6)]:
+            messagebox.showinfo("Review Saved!", "Review saved to your previously watched movies")
+            
+        else:
+            messagebox.showerror("Form Error", "Please fill out all fields of the form.")
 
 
 class RecommenderPage(tk.Frame):
@@ -233,6 +285,37 @@ class RecommenderPage(tk.Frame):
 
         self.home_button = tk.Button(self, text="Home", command=lambda: controller.show_frame(HomePage))
         self.home_button.pack(side="top", anchor="ne", padx=10, pady=10)
+
+        self.min_length = tk.Scale(self, from_=0, to=255, orient='horizontal', label='Min Length (minutes)')
+        self.min_length.set(0)  # Set the default value
+        self.min_length.pack()
+
+        self.max_length = tk.Scale(self, from_=0, to=255, orient='horizontal', label='Max Length (minutes)')
+        self.max_length.set(255)  # Set the default value
+        self.max_length.pack()
+
+        self.start_year = tk.Entry(self)
+        self.start_year.insert(0,"Start Year")
+        self.start_year.pack()
+
+        self.end_year = tk.Entry(self)
+        self.end_year.insert(0,"End Year")
+        self.end_year.pack()
+
+        rec_enter = tk.Button(self, text="Get Recommendation", command=self.get_recommendation)
+        rec_enter.pack()
+
+    def get_recommendation(self):
+        min = self.min_length.get()
+        max = self.max_length.get()
+        start_y = self.start_year.get()
+        end_y = self.end_year.get()
+
+        if int(min) <= int(max):
+            rec_movie = "Jurassic Park"
+            messagebox.showinfo("Recommendation!", f"Your recommended movie is {rec_movie}")
+
+
 
 if __name__ == "__main__":
     app = App()
