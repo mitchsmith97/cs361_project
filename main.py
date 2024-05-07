@@ -65,7 +65,7 @@ class App(tk.Tk):
         self.button_style = ttk.Style()
         self.button_style.configure("TButton", padding=(20,10))
 
-        custom_font = font.Font(size=16)
+        custom_font = font.Font(family='Comic Sans MS', size=12, weight='normal')
         self.option_add("*Font", custom_font)
 
 
@@ -79,13 +79,16 @@ class App(tk.Tk):
         self.show_frame(LoginPage)
 
 
+
 class WelcomePage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-        label = tk.Label(self, text="Welcome Page", width=40, height=6)
+        label = tk.Label(self, text="Welcome to Movie Madness", width=190, height=6)
         label.pack(pady=20, padx=20)
         controller.logged_in = False
         
+        labely = tk.Label(self, text="Your favorite application for movie tracking, rating, and recommendations!", width=410, height=6)
+        labely.pack(pady=40, padx=20)
         label2 = tk.Label(self, text="Returning user?")
         label2.pack()
         button1 = tk.Button(self, text="Login", 
@@ -160,7 +163,7 @@ class AccountCreationPage(tk.Frame):
         label2 = tk.Label(self, text="Choose a password")
         label2.pack(pady=5)
 
-        self.password = tk.Entry(self)
+        self.password = tk.Entry(self, show="*")
         self.password.pack()
 
         self.submit_button = tk.Button(self, text="Create Account!", command=self.create_account)
@@ -207,6 +210,9 @@ class HomePage(tk.Frame):
 
 
         
+
+        label_rec = tk.Label(self, text="Let us find your next watch and save you from scrolling with the 'Recommender'!\nWith a click of a button we will give you a great movie to watch!!")
+        label_rec.pack(pady=15)
         button3 = tk.Button(self, text="Recommender", 
                             command=lambda: controller.show_frame(RecommenderPage))
         button3.pack()
@@ -223,6 +229,20 @@ class WatchlistPage(tk.Frame):
         label = tk.Label(self, text="Watchlist")
         label.pack(pady=10, padx=10)
 
+        movies = [['Fight Club', '2004', '8.2'], ['Avatar', '2012', '7.3']]
+
+        table_headers = 'Title                    Year      Rating'
+        head_label = tk.Label(self, text=table_headers)
+        head_label.pack()
+        
+        for movie in movies:
+            formatted_title = movie[0].ljust(25)  #f"{movie[0][:25]:25s}"
+            formatted_year = movie[1].ljust(10)  #[1][:10]:10s}"
+            formatted_rating = movie[2].ljust(5)  #[:5]:5s}"
+            movie_row = tk.Label(self, text=f"{formatted_title}{formatted_year}{formatted_rating}")
+            movie_row.pack()
+
+
         logout_button = tk.Button(self, text="Logout", command=lambda: controller.show_frame(WelcomePage))
         logout_button.pack(side="top", anchor="ne", padx=10, pady=10)
 
@@ -231,6 +251,9 @@ class WatchlistPage(tk.Frame):
 
         self.add_button = tk.Button(self, text="Add a movie to your watchlist", command=lambda: controller.show_frame(AddWatchlistPage))
         self.add_button.pack(side="top", anchor="n", padx=10, pady=10)
+
+        #Todo- add call to microservice to get watchlist for user
+
 
 class AddWatchlistPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -272,6 +295,19 @@ class WatchedPage(tk.Frame):
         tk.Frame.__init__(self, parent)
         label = tk.Label(self, text="Previously Watched Movies")
         label.pack(pady=10, padx=10)
+
+        movies = [['Up', '9.7', 'So heartwarming'], ['Halloween', '8.4', 'Truly Frightening']]
+
+        table_headers = 'Title                    Rating           Comment             '
+        head_label = tk.Label(self, text=table_headers)
+        head_label.pack()
+        
+        for movie in movies:
+            formatted_title = movie[0].ljust(25)  #f"{movie[0][:25]:25s}"
+            formatted_rating = movie[1].ljust(15)  #[1][:10]:10s}"
+            formatted_comment = movie[2].ljust(25)  #[:5]:5s}"
+            movie_row = tk.Label(self, text=f"{formatted_title}{formatted_rating}{formatted_comment}")
+            movie_row.pack()
 
         logout_button = tk.Button(self, text="Logout", command=lambda: controller.show_frame(WelcomePage))
         logout_button.pack(side="top", anchor="ne", padx=10, pady=10)
@@ -369,9 +405,13 @@ class RecommenderPage(tk.Frame):
         start_y = self.start_year.get()
         end_y = self.end_year.get()
 
-        if int(min) <= int(max):
+        if int(min) <= int(max) and int(start_y) <= int(end_y):
             rec_movie = "Jurassic Park"
             messagebox.showinfo("Recommendation!", f"Your recommended movie is {rec_movie}")
+
+        elif int(start_y) > int(end_y):
+            messagebox.showerror("Error!", f"Invalid year range. Select a start year before the end year")
+
 
 
 
