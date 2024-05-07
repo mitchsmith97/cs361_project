@@ -1,10 +1,12 @@
 import tkinter as tk
+from tkinter import ttk
 from tkinter import messagebox
+from tkinter import font
 
 class App(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
-        self.geometry("400x300")
+        self.geometry("1200x1000")
         self.configure(bg="black")  # Set background color of the application window
 
         self.logged_in = False
@@ -60,6 +62,13 @@ class App(tk.Tk):
         self.option_add("*foreground", "green")
         self.option_add("*background", "black")
 
+        self.button_style = ttk.Style()
+        self.button_style.configure("TButton", padding=(20,10))
+
+        custom_font = font.Font(size=16)
+        self.option_add("*Font", custom_font)
+
+
     def logout(self):
         print("Logging out...")
         self.logged_in = False
@@ -73,16 +82,25 @@ class App(tk.Tk):
 class WelcomePage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-        label = tk.Label(self, text="Welcome Page")
-        label.pack(pady=10, padx=10)
+        label = tk.Label(self, text="Welcome Page", width=40, height=6)
+        label.pack(pady=20, padx=20)
         controller.logged_in = False
+        
+        label2 = tk.Label(self, text="Returning user?")
+        label2.pack()
         button1 = tk.Button(self, text="Login", 
                             command=lambda: controller.show_frame(LoginPage))
         button1.pack()
+
+
+        label3 = tk.Label(self, text="First time? Sign up for full access to watchlist and movie tracking functionality (it only takes one minute!)")
+        label3.pack()
         button2 = tk.Button(self, text="Create Account", 
                             command=lambda: controller.show_frame(AccountCreationPage))
         button2.pack()
 
+        label4 = tk.Label(self, text="Or enter as a guest with limited features and no way to save or rate movies")
+        label4.pack()
         button3 = tk.Button(self, text="Continue as Guest",
                             command=lambda: controller.show_frame(HomePage))
         button3.pack()
@@ -110,6 +128,9 @@ class LoginPage(tk.Frame):
         self.login_button = tk.Button(self, text="Login", command=self.login_helper)
         self.login_button.pack(pady=5)
 
+        self.return_button = tk.Button(self, text="Go Back to Welcome Page", command=lambda: controller.show_frame(WelcomePage))
+        self.return_button.pack(pady=5)
+
     def login_helper(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
@@ -126,12 +147,42 @@ class LoginPage(tk.Frame):
 class AccountCreationPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
+        self.controller = controller
         label = tk.Label(self, text="Account Creation Page")
         label.pack(pady=10, padx=10)
-        button1 = tk.Button(self, text="Choose a username")
-        button1.pack()
-        button2 = tk.Button(self, text="Choose a password")
-        button2.pack()
+
+        label1 = tk.Label(self, text="Choose a username")
+        label1.pack(pady=5)
+
+        self.username = tk.Entry(self)
+        self.username.pack()
+
+        label2 = tk.Label(self, text="Choose a password")
+        label2.pack(pady=5)
+
+        self.password = tk.Entry(self)
+        self.password.pack()
+
+        self.submit_button = tk.Button(self, text="Create Account!", command=self.create_account)
+        self.submit_button.pack(pady=5)
+
+        self.return_button = tk.Button(self, text="Go Back to Welcome Page", command=lambda: controller.show_frame(WelcomePage))
+        self.return_button.pack(pady=5)
+
+
+    def create_account(self):
+        username = self.username.get()
+        password = self.password.get()
+
+        if username and password:
+            messagebox.showinfo("Account Created", "Account Created, Welcome!")
+            self.controller.logged_in = True
+            self.controller.show_frame(HomePage)
+
+        else:
+            messagebox.showerror("Error!", "Invalid username and/or password. Try again!")
+            self.create_account
+
 
 
 class HomePage(tk.Frame):
@@ -159,7 +210,11 @@ class HomePage(tk.Frame):
         button3 = tk.Button(self, text="Recommender", 
                             command=lambda: controller.show_frame(RecommenderPage))
         button3.pack()
-        
+
+ 
+        button4 = tk.Button(self, text="Tutorial", 
+                            command=lambda: controller.show_frame(TutorialPage))
+        button4.pack(pady=50)
 
 
 class WatchlistPage(tk.Frame):
@@ -248,7 +303,7 @@ class AddToWatchedPage(tk.Frame):
         self.rating = tk.StringVar()
 
         label = tk.Label(self, text="Select a rating for the movie")
-        label.pack()
+        label.pack(pady=7)
 
         self.rating_dropdown = tk.OptionMenu(self, self.rating, "1", "2", "3", "4", "5")
         self.rating_dropdown.pack()
@@ -260,7 +315,7 @@ class AddToWatchedPage(tk.Frame):
         self.movie_review.pack()
 
         review_enter = tk.Button(self, text="Save to previously watched", command=self.add_helper)
-        review_enter.pack()
+        review_enter.pack(pady=10)
 
         cancel_button = tk.Button(self, text="Return to Previously Watched List", command=lambda: controller.show_frame(WatchedPage))
         cancel_button.pack()
@@ -286,20 +341,23 @@ class RecommenderPage(tk.Frame):
         self.home_button = tk.Button(self, text="Home", command=lambda: controller.show_frame(HomePage))
         self.home_button.pack(side="top", anchor="ne", padx=10, pady=10)
 
-        self.min_length = tk.Scale(self, from_=0, to=255, orient='horizontal', label='Min Length (minutes)')
+        optional = tk.Label(self, text="Filters (Optional)")
+        optional.pack(pady=10, padx=10)
+
+        self.min_length = tk.Scale(self, from_=0, to=255, orient='horizontal', label='Min Length (minutes)', length=300)
         self.min_length.set(0)  # Set the default value
         self.min_length.pack()
 
-        self.max_length = tk.Scale(self, from_=0, to=255, orient='horizontal', label='Max Length (minutes)')
+        self.max_length = tk.Scale(self, from_=0, to=255, orient='horizontal', label='Max Length (minutes)', length=300)
         self.max_length.set(255)  # Set the default value
         self.max_length.pack()
 
-        self.start_year = tk.Entry(self)
-        self.start_year.insert(0,"Start Year")
+        self.start_year = tk.Scale(self, from_=1920, to=2024, orient='horizontal', label='Start Year', length=300)
+        self.start_year.set(1920)
         self.start_year.pack()
 
-        self.end_year = tk.Entry(self)
-        self.end_year.insert(0,"End Year")
+        self.end_year = tk.Scale(self, from_=1920, to=2024, orient='horizontal', label='End Year', length=300)
+        self.end_year.set(2024)
         self.end_year.pack()
 
         rec_enter = tk.Button(self, text="Get Recommendation", command=self.get_recommendation)
@@ -316,6 +374,42 @@ class RecommenderPage(tk.Frame):
             messagebox.showinfo("Recommendation!", f"Your recommended movie is {rec_movie}")
 
 
+
+
+class TutorialPage(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        label = tk.Label(self, text="Movie Madness Tutorial")
+        label.pack(pady=10, padx=10)
+
+        self.home_button = tk.Button(self, text="Home", command=lambda: controller.show_frame(HomePage))
+        self.home_button.pack(side="top", anchor="ne", padx=10, pady=10)
+
+
+        label2 = tk.Label(self, text="Here's how to interact with our interface")
+        label2.pack(pady=10, padx=10)
+
+        label3 = tk.Label(self, text="Jump between pages by hitting buttons with text inside them.\n For example, the pressing the button below could take you to a secret page")
+        label3.pack()
+
+        button1 = tk.Button(self, text="Go to secret page")
+        button1.pack()
+
+        label3 = tk.Label(self, text="Blank boxes like the one below let you enter text. There will be a heading above it directing you as to what the text entry is for.")
+        label3.pack()
+
+        entry1 = tk.Entry(self)
+        entry1.pack()
+
+        label4 = tk.Label(self, text="Sliders like the one below let you choose a number in a defined range.\n Click to grab the black rectangle and move and release it at your desired value.")
+        label4.pack()
+
+        self.test_scale = tk.Scale(self, from_=0, to=100, orient='horizontal', label='Slider Example', length=300)
+        self.test_scale.set(0)  # Set the default value
+        self.test_scale.pack()
+
+        return_button = tk.Button(self, text="Return to Home Page", command=lambda: controller.show_frame(HomePage))
+        return_button.pack(pady=25)
 
 if __name__ == "__main__":
     app = App()
