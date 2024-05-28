@@ -2,6 +2,23 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 from tkinter import font
+import zmq
+import json
+import signal
+import threading
+import os
+
+
+
+def signal_term(signal, frame):
+        print("Received termination.")
+        os._exit(1)
+
+
+def signal_handler():
+        signal.signal(signal.SIGINT, signal_term)
+        while True:
+            pass
 
 class App(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -10,6 +27,7 @@ class App(tk.Tk):
         self.configure(bg="black")  # Set background color of the application window
 
         self.logged_in = False
+        self.curr_user = False
 
         self.global_style()
 
@@ -17,6 +35,8 @@ class App(tk.Tk):
 
         container = tk.Frame(self, bg="black")
         container.pack(fill="both", expand=True)
+
+        #self.check_keyboard()
 
         self.frames = {}
 
@@ -78,6 +98,10 @@ class App(tk.Tk):
         self.logged_in = False
         self.show_frame(LoginPage)
 
+    def check_keyboard(self):
+        print("Hi")
+        self.after(5000, self.check_keyboard)
+
 
 
 class WelcomePage(tk.Frame):
@@ -138,13 +162,25 @@ class LoginPage(tk.Frame):
         username = self.username_entry.get()
         password = self.password_entry.get()
 
-        if username and password:
+        context = zmq.Context()
+        socket = context.socket(zmq.REQ)
+        socket.connect("tcp://localhost:8321")
+
+        account_json = {'type': 'login', 'username': username, 'password': password}
+        socket.send_json(json.dumps(account_json))
+
+        response = socket.recv_string()
+
+        if response == 'Login successful':
             messagebox.showinfo("Login Successful", "Welcome back!")
             #self.destroy()
             self.controller.logged_in = True
+            self.controller.curr_user = username
+            socket.close()
             self.controller.show_frame(HomePage)
         else:
-            messagebox.showerror("Login Failed", "Invalid username or password")
+            messagebox.showerror("Login Failed", f"{response}")
+            socket.close()
             self.login_helper
 
 class AccountCreationPage(tk.Frame):
@@ -177,13 +213,24 @@ class AccountCreationPage(tk.Frame):
         username = self.username.get()
         password = self.password.get()
 
-        if username and password:
+        context = zmq.Context()
+        socket = context.socket(zmq.REQ)
+        socket.connect("tcp://localhost:8321")
+
+        account_json = {'type': 'create_account', 'username': username, 'password': password}
+        socket.send_json(json.dumps(account_json))
+        response = socket.recv_string()
+
+        if response == 'account created successfully':
             messagebox.showinfo("Account Created", "Account Created, Welcome!")
             self.controller.logged_in = True
+            self.controller.curr_user = username
+            socket.close()
             self.controller.show_frame(HomePage)
 
         else:
-            messagebox.showerror("Error!", "Invalid username and/or password. Try again!")
+            messagebox.showerror("Error!", f"{response}")
+            socket.close()
             self.create_account
 
 
@@ -228,8 +275,34 @@ class WatchlistPage(tk.Frame):
         tk.Frame.__init__(self, parent)
         label = tk.Label(self, text="Watchlist")
         label.pack(pady=10, padx=10)
+        context = zmq.Context()
+        socket = context.socket(zmq.REQ)
+        socket.connect("tcp://localhost:1357")
+        # Create some data to send
+        data = {
+            'req_type': 'view',
+            'username': controller.curr_user
+        }
+        socket.send_string(json.dumps(data))
+        response = socket.recv_string()
+        print(response)
 
-        movies = [['Fight Club', '2004', '8.2'], ['Avatar', '2012', '7.3']]
+        movies = []
+        if response != "No results":
+            
+            json_resp = json.loads(response)
+            socket.close()
+            try:
+                for resp in json_resp:
+                    print(resp)
+                    movie = []
+                    movie.append(resp[0])
+                    movie.append(str(resp[1]))
+                    movie.append(str(resp[2]))
+                    movies.append(movie)
+
+            except:
+                print("No movies in watchlist")
 
         table_headers = 'Title                    Year      Rating'
         head_label = tk.Label(self, text=table_headers)
@@ -276,17 +349,90 @@ class AddWatchlistPage(tk.Frame):
         search_enter = tk.Button(self, text="Search", command=self.add_helper)
         search_enter.pack()
 
+        self.results_listbox = tk.Listbox(self, width=75, height=30)
+        self.confirm_button = tk.Button(self, text="Add Selected to Watchlist", command=lambda: self.add_selected_movie(controller))#need to pass controller?)
+
         cancel_button = tk.Button(self, text="Return to Watchlist", command=lambda: controller.show_frame(WatchlistPage))
         cancel_button.pack()
 
     def add_helper(self):
         title = self.search_text.get()
+        context = zmq.Context()
 
-        if title == 'Star Wars':
-            messagebox.showinfo("Movie found!", "Movie found and will be added to your watchlist")
+        # Create a PUSH socket
+        socket = context.socket(zmq.REQ)
+
+        # Connect to the server
+        socket.connect("tcp://localhost:1357")
+        # Create some data to send
+        data = {
+            'req_type': 'search',
+            'partial_title': title
+        }
+
+        # Serialize data to JSON
+        json_data = json.dumps(data)
+
+        # Send the JSON data
+        socket.send_string(json_data)
+        print(f"Sent: {json_data}")
+        response = socket.recv_json()
+        print(response)
+
+        json_resp = json.loads(response)
+        socket.close()
+
+        self.results_listbox.delete(0, tk.END)
+        self.search_results = []
+        self.hidden_data = []
+
+        if json_resp:
+            
+            print(json_resp)
+            self.results_listbox.pack(pady=10)
+            self.confirm_button.pack()
+            for movie in json_resp:
+                display_text = f"{movie['title']} ({movie['year']}) - Rating: {movie['rating']}"
+                self.results_listbox.insert(tk.END, display_text)
+                self.search_results.append(movie)
+                self.hidden_data.append(movie['title_ID'])
             
         else:
             messagebox.showerror("No results found", "We did not find any matches, please try searching for a different title.")
+            self.results_listbox.pack_forget()
+            self.confirm_button.pack_forget()
+
+
+    def add_selected_movie(self, controller):
+        try:
+            selected_index= self.results_listbox.curselection()[0]
+            selected_movie = self.search_results[selected_index]
+            print(f"Selected movie: {selected_movie}")
+            title = self.search_text.get()
+            context = zmq.Context()
+
+            socket = context.socket(zmq.REQ)
+
+            # Connect to the server
+            socket.connect("tcp://localhost:1357")
+            # Create some data to send
+            data = {
+                'req_type': 'insert',
+                'username': controller.curr_user,
+                'title_ID': selected_movie['title_ID']
+            }
+
+            # Serialize data to JSON
+            json_data = json.dumps(data)
+
+            # Send the JSON data
+            socket.send_string(json_data)
+            socket.close()
+
+            messagebox.showinfo("Movie Added", f"{selected_movie} has been added to your watchlist.")
+            controller.show_frame(WatchlistPage)
+        except tk.TclError:
+            messagebox.showerror("Selection Error", "Please select a movie from the list.")
 
 
 
@@ -400,16 +546,47 @@ class RecommenderPage(tk.Frame):
         rec_enter.pack()
 
     def get_recommendation(self):
-        min = self.min_length.get()
-        max = self.max_length.get()
-        start_y = self.start_year.get()
-        end_y = self.end_year.get()
+        min_length = int(self.min_length.get())
+        max_length = int(self.max_length.get())
+        start_year = int(self.start_year.get())
+        end_year = int(self.end_year.get())
 
-        if int(min) <= int(max) and int(start_y) <= int(end_y):
-            rec_movie = "Jurassic Park"
-            messagebox.showinfo("Recommendation!", f"Your recommended movie is {rec_movie}")
+        if min_length <= max_length and start_year <= end_year:
+            context = zmq.Context()
 
-        elif int(start_y) > int(end_y):
+            # Create a REQ socket
+            socket = context.socket(zmq.REQ)
+
+            # Connect to the server
+            socket.connect("tcp://localhost:2468")
+
+            # Create some data to send
+            data = {
+                'min_year': start_year,
+                'max_year': end_year,
+                'min_length': min_length,
+                'max_length': max_length
+            }
+
+            # Serialize data to JSON
+            json_data = json.dumps(data)
+
+            # Send the JSON data
+            socket.send_string(json_data)
+            print(f"Sent: {json_data}")
+            response = socket.recv_string()
+            try:
+                json_response = json.loads(response)
+
+                print(response)
+                socket.close()
+
+                messagebox.showinfo("Recommendation!", f"Your recommendation is {json_response['title']}")
+
+            except: 
+                messagebox.showinfo("No Results!", "No titles match your criteria, try again!")
+
+        elif start_year > end_year or min_length > max_length:
             messagebox.showerror("Error!", f"Invalid year range. Select a start year before the end year")
 
 
@@ -451,6 +628,13 @@ class TutorialPage(tk.Frame):
         return_button = tk.Button(self, text="Return to Home Page", command=lambda: controller.show_frame(HomePage))
         return_button.pack(pady=25)
 
-if __name__ == "__main__":
+
+def main():
     app = App()
     app.mainloop()
+
+if __name__ == "__main__":
+    '''thread = threading.Thread(target=main)
+    thread.start()
+    signal_handler()'''
+    main()
